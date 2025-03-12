@@ -7,6 +7,25 @@ jQuery(document).ready(function($) {
     let batchSize = 10;
     let globalAttributes = [];
 
+    // Initialize autocomplete for category
+    $('#gspa-category-autocomplete').autocomplete({
+        source: gspaAdmin.categories,
+        minLength: 0,
+        select: function(event, ui) {
+            $('#gspa-category').val(ui.item.id);
+            currentCategory = ui.item.id;
+            return true;
+        }
+    }).focus(function() {
+        // Show all options on focus
+        $(this).autocomplete('search', '');
+    });
+
+    // Set default value for autocomplete
+    if (gspaAdmin.categories.length > 0) {
+        $('#gspa-category-autocomplete').val(gspaAdmin.categories[0].label);
+    }
+
     // Initialize sortable
     $('#gspa-attribute-list').sortable({
         update: function(event, ui) {

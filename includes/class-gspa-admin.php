@@ -38,12 +38,21 @@ class GSPA_Admin {
         // Enqueue jQuery UI
         wp_enqueue_script('jquery-ui-sortable');
         wp_enqueue_script('jquery-ui-progressbar');
+        wp_enqueue_script('jquery-ui-autocomplete'); // Add autocomplete
+
+        // Enqueue jQuery UI CSS
+        wp_enqueue_style(
+            'jquery-ui-style',
+            'https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css',
+            array(),
+            '1.12.1'
+        );
 
         // Enqueue our custom scripts
         wp_enqueue_script(
             'gspa-admin',
             GSPA_PLUGIN_URL . 'assets/js/admin.js',
-            array('jquery', 'jquery-ui-sortable', 'jquery-ui-progressbar'),
+            array('jquery', 'jquery-ui-sortable', 'jquery-ui-progressbar', 'jquery-ui-autocomplete'),
             GSPA_VERSION,
             true
         );
@@ -56,16 +65,40 @@ class GSPA_Admin {
             GSPA_VERSION
         );
 
+        // Get all product categories for autocomplete
+        $categories = get_terms(array(
+            'taxonomy' => 'product_cat',
+            'hide_empty' => true
+        ));
+
+        $category_data = array();
+        foreach ($categories as $category) {
+            $category_data[] = array(
+                'id' => $category->term_id,
+                'label' => $category->name,
+                'value' => $category->name
+            );
+        }
+
+        // Add "All Categories" option
+        array_unshift($category_data, array(
+            'id' => 0,
+            'label' => __('All Categories', 'global-sort-product-attributes'),
+            'value' => __('All Categories', 'global-sort-product-attributes')
+        ));
+
         // Localize script
         wp_localize_script('gspa-admin', 'gspaAdmin', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('gspa_nonce'),
+            'categories' => $category_data,
             'strings' => array(
                 'confirm_batch' => __('Are you sure you want to apply these changes to all selected products?', 'global-sort-product-attributes'),
                 'processing' => __('Processing...', 'global-sort-product-attributes'),
                 'success' => __('Changes saved successfully!', 'global-sort-product-attributes'),
                 'error' => __('An error occurred. Please try again.', 'global-sort-product-attributes'),
-                'no_products' => __('No variable products found in this category.', 'global-sort-product-attributes')
+                'no_products' => __('No variable products found in this category.', 'global-sort-product-attributes'),
+                'select_category' => __('Select or type a category name...', 'global-sort-product-attributes')
             )
         ));
     }
@@ -74,25 +107,17 @@ class GSPA_Admin {
      * Render the admin page
      */
     public function render_admin_page() {
-        // Get all product categories
-        $categories = get_terms(array(
-            'taxonomy' => 'product_cat',
-            'hide_empty' => true
-        ));
         ?>
         <div class="wrap">
             <h1><?php _e('Global Sort Product Attributes', 'global-sort-product-attributes'); ?></h1>
 
             <div class="gspa-container">
                 <div class="gspa-filters">
-                    <select id="gspa-category">
-                        <option value="0"><?php _e('All Categories', 'global-sort-product-attributes'); ?></option>
-                        <?php foreach ($categories as $category) : ?>
-                            <option value="<?php echo esc_attr($category->term_id); ?>">
-                                <?php echo esc_html($category->name); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="gspa-category-container">
+                        <label for="gspa-category-autocomplete"><?php _e('Category:', 'global-sort-product-attributes'); ?></label>
+                        <input type="text" id="gspa-category-autocomplete" class="gspa-category-autocomplete" placeholder="<?php _e('Select or type a category name...', 'global-sort-product-attributes'); ?>">
+                        <input type="hidden" id="gspa-category" value="0">
+                    </div>
 
                     <select id="gspa-batch-size">
                         <option value="10">10 <?php _e('products per batch', 'global-sort-product-attributes'); ?></option>
